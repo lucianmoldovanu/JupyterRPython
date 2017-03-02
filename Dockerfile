@@ -1,62 +1,43 @@
-FROM jupyter/notebook
+FROM rickyking/ds-xgboost
+MAINTAINER Lucian Moldovanu <lucian.moldovanu@gmail.com>
 
-# The following would be required to enable exporting of ipynbs but creates too large an image for docker hub
-# TODO: how to enable adjustbox without pulling down 3G of data
-RUN apt-get update && apt-get install -y inkscape   # For nbconvert to work with svg
-# RUN apt-get update && apt-get install -y texlive-latex-base   # For creating pdfs via latex
-# RUN apt-get update && apt-get install -y texlive-latex-extra   # required for adjustbox.sty, probably is an easier way
-RUN apt-get clean
+RUN apt-get install -y wget bzip2 ca-certificates \
+    libglib2.0-0 libxext6 libsm6 libxrender1 \
+    mercurial subversion
 
-# Install MNE http://martinos.org/mne/stable/index.html
-# Tips from http://stackoverflow.com/questions/11114225/installing-scipy-and-numpy-using-pip
-RUN apt-get update && apt-get install -y \
-    libfreetype6-dev \
-    libpng-dev \
-    libblas-dev\
-    liblapack-dev\
-    libatlas-base-dev\
-    gfortran\
-    && apt-get clean
-RUN pip2 install numpy
-RUN pip2 install scipy
-RUN pip2 install sklearn
-RUN pip2 install pandas
-RUN pip2 install matplotlib
-RUN pip2 install -e 'git+https://github.com/mne-tools/mne-python#egg=mne-dev'
+WORKDIR /
 
-# Install new version of R
+RUN echo 'export PATH=/opt/conda/bin:$PATH' > /etc/profile.d/conda.sh && \
+    wget --quiet https://repo.continuum.io/archive/Anaconda2-4.0.0-Linux-x86_64.sh && \
+    /bin/bash /Anaconda3-4.3.0-Linux-x86_64.sh -b -p /opt/conda && \
+    rm /Anaconda3-4.3.0-Linux-x86_64.sh
+
+ENV PATH /opt/conda/bin:$PATH
+RUN conda install -y -c https://conda.anaconda.org/anaconda setuptools
+RUN cd /opt/xgboost/python-package/ && python setup.py install
+ENV LANG C.UTF-8
+
+# Install R
 RUN sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 RUN echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list
 
-# Install R
-# https://github.com/IRkernel/IRkernel
-# http://stackoverflow.com/questions/26445815/error-when-installing-devtools-package-for-r-in-ubuntu
-# http://stackoverflow.com/questions/20671814/non-zero-exit-status-r-3-0-1-xml-and-rcurl
 RUN apt-get update && apt-get install -y \
     r-base \
     libzmq3-dev \
-#    libcurl4-gnutls-dev \
-#    libcurl4-openssl-dev \
     libxml2-dev \
     && apt-get clean
 
-# Install R packages
 COPY scripts/rpackages.R /sbin/rpackages.R
 RUN chmod +x /sbin/rpackages.R
 RUN /sbin/rpackages.R
 
-# COPY requirements.txt /tmp/requirements.txt
-# RUN ls /tmp
-# RUN pip2 install -r /tmp/requirements.txt
+# Add a notebook profile.
+RUN mkdir -p -m 700 /root/.jupyter/ && \
+    echo "c.NotebookApp.ip = '*'" >> /root/.jupyter/jupyter_notebook_config.py
 
-WORKDIR "/"
-RUN mkdir /workspace
+VOLUME /notebooks
+WORKDIR /notebooks
 
 EXPOSE 8888
-VOLUME /workspace
-
-RUN mkdir /root/.ssh
-VOLUME /root/.
-
-# https://github.com/ipython/ipython/issues/7062
-CMD sh -c "jupyter notebook --ip=*"
+CMD ["jupyter", "notebook"]
+#CMD sh -c "jupyter notebook --ip=*"
