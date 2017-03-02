@@ -8,7 +8,7 @@ RUN apt-get install -y wget bzip2 ca-certificates \
 WORKDIR /
 
 RUN echo 'export PATH=/opt/conda/bin:$PATH' > /etc/profile.d/conda.sh && \
-    wget --quiet https://repo.continuum.io/archive/Anaconda2-4.0.0-Linux-x86_64.sh && \
+    wget --quiet https://repo.continuum.io/archive/Anaconda3-4.3.0-Linux-x86_64.sh && \
     /bin/bash /Anaconda3-4.3.0-Linux-x86_64.sh -b -p /opt/conda && \
     rm /Anaconda3-4.3.0-Linux-x86_64.sh
 
